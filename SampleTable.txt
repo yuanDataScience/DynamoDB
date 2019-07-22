@@ -1,0 +1,21 @@
+Study_ID	Sample_ID	Platform_ID	Sample_title	Type	Organism	Biomaterial	Disease	Patient_number	Response	Treatment	Time_point	Age	Race	Gender
+102757	2746967	GPL16791		RNA	Homo sapiens	intestinal epithelial organoid	ulcerative colitis	C-110				60	White	M
+102757	2746968	GPL16792		RNA	Homo sapiens	intestinal epithelial organoid	ulcerative colitis	C-138				44	White	F
+102757	2746969	GPL16793		RNA	Homo sapiens	intestinal epithelial organoid	ulcerative colitis	C-139				58	White	M
+102757	2746970	GPL16794		RNA	Homo sapiens	intestinal epithelial organoid	ulcerative colitis	C-141				18	White	M
+102757	2746971	GPL16795		RNA	Homo sapiens	intestinal epithelial organoid	ulcerative colitis	C-145				58	White	F
+102757	2746972	GPL16796		RNA	Homo sapiens	intestinal epithelial organoid	ulcerative colitis	C-149				44	White	F
+102757	2746973	GPL16797		RNA	Homo sapiens	intestinal epithelial organoid	ulcerative colitis	C-150				40	White	F
+102757	2746974	GPL16798		RNA	Homo sapiens	intestinal epithelial organoid	ulcerative colitis	C-134				25	White	M
+102757	2746975	GPL16799		RNA	Homo sapiens	intestinal epithelial organoid	ulcerative colitis	C-123				24	White	M
+102757	2746976	GPL16800		RNA	Homo sapiens	intestinal epithelial organoid	ulcerative colitis	C-543				50	White	M
+102757	2746977	GPL16801		RNA	Homo sapiens	intestinal epithelial organoid	normal	N-124				55	White	F
+102757	2746978	GPL16802		RNA	Homo sapiens	intestinal epithelial organoid	normal	N-345				65	White	M
+102757	2746979	GPL16803		RNA	Homo sapiens	intestinal epithelial organoid	normal	N-908				73	White	F
+102757	2746980	GPL16804		RNA	Homo sapiens	intestinal epithelial organoid	normal	N-341				74	White	M
+102757	2746981	GPL16805		RNA	Homo sapiens	intestinal epithelial organoid	normal	N-243				66	White	F
+102757	2746982	GPL16806		RNA	Homo sapiens	intestinal epithelial organoid	normal	N-657				89	White	F
+102757	2746983	GPL16807		RNA	Homo sapiens	intestinal epithelial organoid	normal	N-541				60	White	M
+102757	2746984	GPL16808		RNA	Homo sapiens	intestinal epithelial organoid	normal	N-213				75	White	M
+102757	2746985	GPL16809		RNA	Homo sapiens	intestinal epithelial organoid	normal	N-086				65	White	M
+102757	2746986	GPL16810		RNA	Homo sapiens	intestinal epithelial organoid	normal	N-391				62	White	M
