@@ -1,0 +1,230 @@
+import pandas as pd
+import boto3
+from boto3.dynamodb.conditions import Key, Attr
+import numpy as np
+import os
+import time
+import json
+import decimal
+import sys
+from decimal import Decimal
+import io
+
+# aws_access_key = os.getenv("AWS_ACCESS_KEY")
+# aws_secret_access_key = os.getenv("AWS_SECRET_KEY")
+# region = os.getenv("AWS_REGION")
+s3_bucket = "your_s3_bucket"
+
+
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, decimal.Decimal):
+            if o % 1 > 0:
+                return float(o)
+            else:
+                return int(o)
+        return super(DecimalEncoder, self).default(o)
+
+
+class DynamoDBDataManager:
+    #def __init__(self, aws_access_key, aws_secret_access_key, region):
+    #    self.session = boto3.Session(aws_access_key_id=aws_access_key, aws_secret_access_key=aws_secret_access_key)
+    #    self.client = self.session.client('dynamodb', region)
+    #    self.resource = self.session.resource('dynamodb', region)
+    #    self.s3_client = self.session.client('s3', region)
+    
+    def __init__(self):
+        self.session = boto3.Session()
+        self.client = self.session.client('dynamodb')
+        self.resource = self.session.resource('dynamodb')
+        self.s3_client = self.session.client('s3')
+
+
+
+    def CreateTable(self, params):
+        self.client.create_table(**params)
+        table_name = params['TableName']
+        print('Waiting for creating', table_name, '...')
+        waiter = self.client.get_waiter('table_exists')
+        waiter.wait(TableName=table_name)
+        print(table_name + " successfully created!")
+
+    def listTables(self):
+        return client.list_tables()['TableNames']
+
+    def describeTable(self, table_name):
+        return client.describe_table(TableName=table_name)
+
+    def deleteTable(self, tablen_ame):
+        client.delete_table(TableName=table_name)
+        print('Waiting for deleting', table_name, '...')
+        waiter = client.get_waiter('table_not_exists')
+        waiter.wait(TableName=table_name)
+        print(table_name + " successfully deleted!")
+
+    def addItem(self, table_name, item):
+        """
+        Input:
+          tablename: string, name of the table
+          item: dictionary
+        """
+        table = self.resource.Table(table_name)
+        return table.put_item(
+            Item=item
+        )
+
+    def getItem(self, table_name, key):
+        """
+        Input:
+          tablename: string
+          key: dictionary
+        """
+        table = self.resource.Table(table_name)
+
+        response = table.get_item(
+            Key=key
+        )
+        return response['Item']
+
+    def updateItem(self, table_name, key, col_name, val):
+        table = self.resource.Table(table_name)
+
+        response = table.update_item(
+            Key=key,
+            UpdateExpression='SET ' + col_name + ' = :val1',
+            ExpressionAttributeValues={
+                ':val1': val
+            }
+        )
+        return 'HTTPStatusCode is: ' + str(response['ResponseMetadata']['HTTPStatusCode'])
+
+    def deleteItem(self, table_name, key):
+        table = self.resource.Table(table_name)
+
+        return table.delete_item(
+            Key=key
+        )['ResponseMetadata']['HTTPStatusCode']
+
+    def _batch_load(self, df, table):
+        df_json = df.to_json(orient='records')
+        records = json.loads(df_json, parse_float=decimal.Decimal, parse_int=decimal.Decimal)
+        with table.batch_writer() as batch:
+            for rec in records:
+                #print(rec)
+                batch.put_item(Item=rec)
+
+    def importTxtFile(self, file_name, table_name, sep="\t"):
+        table = self.resource.Table(table_name)
+        df = pd.read_csv(file_name, sep=sep)
+        df.columns = df.columns.str.replace("\.", "_")
+        self._batch_load(df, table)
+
+    def importTextFromS3(self, bucket, s3_key, table_name, sep=","):
+        table = self.resource.Table(table_name)
+        obj = self.s3_client.get_object(Bucket=bucket, Key=s3_key)
+        df = pd.read_csv(obj['Body'], sep=sep)
+        self._batch_load(df, table)
+
+    def queryByKey(self, table_name, expr, index_name=None, filter_expr=None, select_column=None):
+        table = self.resource.Table(table_name)
+        results = []
+        response = None
+
+        while (response is None) or ('LastEvaluatedKey' in response):
+            if index_name and filter_expr:
+                if not select_column:
+                    response = table.query(
+                        IndexName=index_name,
+                        KeyConditionExpression=expr,
+                        FilterExpression=filter_expr
+                    )
+                else:
+                    esponse = table.query(
+                        IndexName=index_name,
+                        KeyConditionExpression=expr,
+                        FilterExpression=filter_expr,
+                        ProjectionExpression=select_column
+                    )
+            elif index_name:
+                if not select_column:
+                    response = table.query(
+                        IndexName=index_name,
+                        KeyConditionExpression=expr
+                    )
+                else:
+                    response = table.query(
+                        IndexName=index_name,
+                        KeyConditionExpression=expr,
+                        ProjectionExpression=select_column
+                    )
+            elif filter_expr:
+                if not select_column:
+                    response = table.query(
+                        KeyConditionExpression=expr,
+                        FilterExpression=filter_expr
+                    )
+                else:
+                    response = table.query(
+                        KeyConditionExpression=expr,
+                        FilterExpression=filter_expr,
+                        ProjectionExpression=select_column
+                    )
+
+            else:
+                if not select_column:
+                    response = table.query(
+                        KeyConditionExpression=expr
+                    )
+                else:
+                    response = table.query(
+                        KeyConditionExpression=expr,
+                        ProjectionExpression=select_column
+                    )
+
+            results.extend(response['Items'])
+
+        return results
+        # return json.dumps(rs, cls=DecimalEncoder)
+
+    def scanTable(self, table_name, filter_expr=None, project=None):
+        table = self.resource.Table(table_name)
+        if not filter_expr and not project:
+            response = table.scan(
+            )
+        elif filter_expr and not project:
+            response = table.scan(
+                FilterExpression=filter_expr
+            )
+
+        elif project and not filter_expr:
+            response = table.scan(
+                ProjectionExpression=project
+            )
+        else:
+            response = table.scan(
+                FilterExpression=filter_expr,
+                ProjectionExpression=project
+
+            )
+
+        return response['Items']
+
+    def updateTableSchema(self, attr_def, table_name, GSI_updates):
+        self.client.update_table(
+            AttributeDefinitions=attr_def,
+            TableName=table_name,
+            GlobalSecondaryIndexUpdates=GSI_updates
+        )
+
+
+if __name__ == "__main__":
+#    dynamodb = DynamoDBDataManager(aws_access_key, aws_secret_access_key, region)
+    dynamodb = DynamoDBDataManager()
+    bucket = sys.argv[1]
+    s3_key = sys.argv[2]
+    dynamo_table = sys.argv[3]
+    sep = sys.argv[4]
+    if sep == "csv":
+        dynamodb.importTextFromS3(bucket, s3_key, dynamo_table)
+    else:
+        dynamodb.importTextFromS3(bucket, s3_key, dynamo_table, sep="\t")
